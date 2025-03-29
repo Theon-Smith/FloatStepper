@@ -103,7 +103,6 @@ int main(int argc, char *argv[])
     {
         #include "readDyMControls.H"
         #include "readOversetDyMControls.H"
-
         if (LTS)
         {
             #include "setRDeltaT.H"    //is this necessary? not present in floatstepper
@@ -127,10 +126,6 @@ int main(int argc, char *argv[])
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         if (mesh.changing())
         {
-//            Info<< "Execution time for mesh.update() = "
-//                << runTime.elapsedCpuTime() - timeBeforeMeshUpdate
-//                << " s" << endl;
-
             // Do not apply previous time-step mesh compression flux
             // if the mesh topology changed
             if (mesh.topoChanging())
@@ -138,10 +133,10 @@ int main(int argc, char *argv[])
                 talphaPhi1Corr0.clear();
             }
 
-        // Update cellMask field for blocking out hole cells
-        #include "setCellMask.H"
-        #include "setInterpolatedCells.H"
-        #include "correctPhiFaceMask.H"
+            // Update cellMask field for blocking out hole cells
+            #include "setCellMask.H"
+            #include "setInterpolatedCells.H"
+            #include "correctPhiFaceMask.H"
         }
         ///////////////////////////////////////////////////////////////////////////////////////////////////////
         // There is also an MRF.update() after these two lines in floatstepper

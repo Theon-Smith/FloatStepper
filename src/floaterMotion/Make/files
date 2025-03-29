@@ -20,6 +20,8 @@ $(restraints)/oscillatingForce/oscillatingForce.C
 floaterMotionSolver/floaterMotionSolver.C
 
 dynamicFloaterMotionSolversFvMesh/dynamicFloaterMotionSolversFvMesh.C
+# theon oversetting additions
+dynamicOverFloaterMotionSolversFvMesh/dynamicOverFloaterMotionSolversFvMesh.C
 
 fvPatchFields/floaterVelocity/floaterVelocityFvPatchVectorField.C
 fvPatchFields/sixDoFRigidBodySlipVelocity/sixDoFRigidBodySlipVelocityFvPatchVectorField.C

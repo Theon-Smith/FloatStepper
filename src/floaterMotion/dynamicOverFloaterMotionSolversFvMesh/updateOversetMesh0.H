@@ -40,6 +40,22 @@ disp -= bodySolver.pointDisplacement().primitiveField();
 
 U0.correctBoundaryConditions();
 
+oversetFvMeshBase::update();
+if (mesh.changing())
+{
+    // Do not apply previous time-step mesh compression flux
+    // if the mesh topology changed
+    if (mesh.topoChanging())
+    {
+        talphaPhi1Corr0.clear();
+    }
+
+    // Update cellMask field for blocking out hole cells
+    #include "setCellMask.H"
+    #include "setInterpolatedCells.H"
+    #include "correctPhiFaceMask.H"
+}
+
 // At this stage, the mesh point have been moved but all the fields are from the
 // old mesh
 
