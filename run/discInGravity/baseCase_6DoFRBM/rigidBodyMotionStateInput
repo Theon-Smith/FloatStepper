@@ -1,0 +1,11 @@
+centreOfRotation ( 0 0 0 );
+
+orentation      ( 1 0 0 0 1 0 0 0 1 );
+
+velocity        ( 0 0 0 );
+
+acceleration    ( 0 0.111111 0 );
+
+omega           ( 0 0 0 );
+
+domegadt        ( 0 0 0 );
