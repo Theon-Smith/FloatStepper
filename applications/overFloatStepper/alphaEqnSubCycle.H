@@ -1,47 +1,36 @@
+if (nAlphaSubCycles > 1)
 {
-    // Standard face-flux compression coefficient
-    surfaceScalarField phic(interface.cAlpha()*mag(phi/mesh.magSf()));
-
-    // Add the optional isotropic compression contribution
-    if (icAlpha > 0)
-    {
-        phic *= (1.0 - icAlpha);
-        phic += (interface.cAlpha()*icAlpha)*fvc::interpolate(mag(U));
-    }
-
-    volScalarField divU
+    dimensionedScalar totalDeltaT = runTime.deltaT();
+    surfaceScalarField rhoPhiSum
     (
-        mesh.moving()
-      ? fvc::div(phi + mesh.phi())
-      : fvc::div(phi)
+        mesh.newIOobject("rhoPhiSum"),
+        mesh,
+        dimensionedScalar(rhoPhi.dimensions(), Zero)
     );
 
-    if (nAlphaSubCycles > 1)
+    tmp<volScalarField> trSubDeltaT;
+
+    if (LTS)
     {
-        dimensionedScalar totalDeltaT = runTime.deltaT();
-        surfaceScalarField rhoPhiSum
-        (
-            mesh.newIOobject("rhoPhiSum"),
-            mesh,
-            dimensionedScalar(rhoPhi.dimensions(), Zero)
-        );
-
-        for
-        (
-            subCycle<volScalarField> alphaSubCycle(alpha1, nAlphaSubCycles);
-            !(++alphaSubCycle).end();
-        )
-        {
-            #include "alphaEqn.H"
-            rhoPhiSum += (runTime.deltaT()/totalDeltaT)*rhoPhi;
-        }
-
-        rhoPhi = rhoPhiSum;
+        trSubDeltaT =
+            fv::localEulerDdt::localRSubDeltaT(mesh, nAlphaSubCycles);
     }
-    else
+
+    for
+    (
+        subCycle<volScalarField> alphaSubCycle(alpha1, nAlphaSubCycles);
+        !(++alphaSubCycle).end();
+    )
     {
         #include "alphaEqn.H"
+        rhoPhiSum += (runTime.deltaT()/totalDeltaT)*rhoPhi;
     }
 
-    rho == alpha1*rho1 + alpha2*rho2;
+    rhoPhi = rhoPhiSum;
 }
+else
+{
+    #include "alphaEqn.H"
+}
+
+rho == alpha1*rho1 + alpha2*rho2;

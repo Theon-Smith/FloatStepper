@@ -1,42 +1,28 @@
 {
-    if (correctPhi)
-    {
-        rAU.ref() = 1.0/UEqn.A();
-    }
-    else
-    {
-        rAU = 1.0/UEqn.A();
-    }
+    rAU = 1.0/UEqn.A();
 
-    surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU()));
-    // todo: volVectorField H("H", UEqn.H());
-    volVectorField HbyA(constrainHbyA(rAU()*UEqn.H(), U, p_rgh));
-    surfaceScalarField phiHbyA
-    (
-        "phiHbyA",
-        fvc::flux(HbyA)
-      + MRF.zeroFilter(fvc::interpolate(rho*rAU())*fvc::ddtCorr(U, phi, Uf))
-    );
+    surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU));
+
+    volVectorField H("H", UEqn.H());
+
+    volVectorField HbyA("HbyA", U);
+
+    HbyA = constrainHbyA(rAU*H, U, p_rgh);
+
+    surfaceScalarField phiHbyA("phiHbyA", fvc::flux(HbyA));
+
     MRF.makeRelative(phiHbyA);
-
-    if (p_rgh.needReference())
-    {
-        fvc::makeRelative(phiHbyA, U);
-        adjustPhi(phiHbyA, U, p_rgh);
-        fvc::makeAbsolute(phiHbyA, U);
-    }
 
     surfaceScalarField phig
     (
         (
             mixture.surfaceTensionForce()
-          - ghf*fvc::snGrad(rho)
-        )*rAUf*mesh.magSf()
+          - ghf*fvc::snGrad(cellMask*rho)
+        )*rAUf*faceMask*mesh.magSf()
     );
 
     phiHbyA += phig;
 
-    // from overset version
     if (adjustFringe)
     {
         oversetAdjustPhi(phiHbyA, U, zoneIdMass);
@@ -62,19 +48,23 @@
 
             p_rgh.relax();
 
-            // added cellMask
-            U = cellMask * (HbyA + rAU()*fvc::reconstruct((phig - p_rghEqn.flux())/rAUf));
+            U =
+                cellMask*
+                (
+                   HbyA + rAU*fvc::reconstruct((phig - p_rghEqn.flux())/rAUf)
+                );
+
             U.correctBoundaryConditions();
             fvOptions.correct(U);
+        }
+        if (oversetPatchErrOutput)
+        {
+            oversetPatchPhiErr(p_rghEqn, phiHbyA);
         }
     }
 
     #include "continuityErrs.H"
 
-    // Correct Uf if the mesh is moving
-    fvc::correctUf(Uf, U, phi);
-
-    // maybe this must go before correctUf
     {
         Uf = fvc::interpolate(U);
         surfaceVectorField n(mesh.Sf()/mesh.magSf());
@@ -91,17 +81,12 @@
 
     if (p_rgh.needReference())
     {
-        p += dimensionedScalar
+        p_rgh += dimensionedScalar
         (
-            "p",
+            "p_rgh",
             p.dimensions(),
-            pRefValue - getRefCellValue(p, pRefCell)
+            pRefValue - getRefCellValue(p_rgh, pRefCell)
         );
-        p_rgh = p - rho*gh;
-    }
-
-    if (!correctPhi)
-    {
-        rAU.clear();
+        p == p_rgh + rho*gh;
     }
 }

@@ -182,19 +182,19 @@ int main(int argc, char *argv[])
                 oversetAdjustPhi(phi, U, zoneIdMass);
             }
 
-//todo:            #include "alphaControls.H"// todo: check that these are okay
-  //todo:          #include "alphaEqnSubCycle.H"
+            #include "alphaControls.H"
+            #include "alphaEqnSubCycle.H"
 
             rhoPhi *= faceMask;
 
             mixture.correct();
 
-  //todo:          #include "UEqn.H"
+	        #include "UEqn.H"
 
             // --- Pressure corrector loop
             while (pimple.correct())
             {
- //todo:               #include "pEqn.H"
+ 	           #include "pEqn.H"
             }
 
             if (pimple.turbCorr())

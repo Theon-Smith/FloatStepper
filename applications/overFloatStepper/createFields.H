@@ -85,6 +85,8 @@ volScalarField rho
 );
 rho.oldTime();
 
+// Construct interface from alpha1 distribution
+//interfaceProperties interface(alpha1, U, mixture);
 
 // Mass flux
 surfaceScalarField rhoPhi
