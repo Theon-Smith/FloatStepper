@@ -1,64 +1,103 @@
 //
-// Created by theon on 2025/03/27.
+// Created by theon on 2025/03/28.
 //
 
-#ifndef DYNAMICOVERSETFLOATERFVMESH_H
-#define DYNAMICOVERSETFLOATERFVMESH_H
+#ifndef DYNAMICOVERFLOATERMOTIONSOLVERSFVMESH_H
+#define DYNAMICOVERFLOATERMOTIONSOLVERSFVMESH_H
 
-#include "dynamicOverFloaterMotionSolversFvMesh.H"
+
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | www.openfoam.com
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+    Copyright (C) 2022 OpenCFD Ltd.
+-------------------------------------------------------------------------------
+License
+    This file is part of OpenFOAM.
+
+    OpenFOAM is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+Class
+    Foam::dynamicOversetFvMesh
+
+Description
+    dynamicFvMesh with support for overset meshes.
+
+SourceFiles
+    dynamicOversetFvMesh.C
+
+\*---------------------------------------------------------------------------*/
+
+#include "dynamicFvMesh.H"
 #include "oversetFvMeshBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
+class motionSolver;
 
 /*---------------------------------------------------------------------------*\
-                   Class dynamicOversetFloaterFvMesh Declaration
+                   Class dynamicOverFloaterMotionSolversFvMesh Declaration
 \*---------------------------------------------------------------------------*/
 
-class dynamicOversetFloaterFvMesh
+class dynamicOverFloaterMotionSolversFvMesh
 :
-    public dynamicOverFloaterMotionSolversFvMesh,
+    public dynamicFvMesh,
     public oversetFvMeshBase
 {
+    // Private data
+    PtrList<motionSolver> motionSolvers_;
+
     // Private Member Functions
 
-        //- No copy construct
-        dynamicOversetFloaterFvMesh(const dynamicOversetFloaterFvMesh&) = delete;
+    //- No copy construct
+    dynamicOverFloaterMotionSolversFvMesh(const dynamicOverFloaterMotionSolversFvMesh&) = delete;
 
-        //- No copy assignment
-        void operator=(const dynamicOversetFloaterFvMesh&) = delete;
+    //- No copy assignment
+    void operator=(const dynamicOverFloaterMotionSolversFvMesh&) = delete;
 
 
 public:
 
     //- Runtime type information
-    TypeName("dynamicOversetFloaterFvMesh");
+    TypeName("dynamicOverFloaterMotionSolversFvMesh");
 
 
     // Constructors
 
-        //- Construct from IOobject
-        dynamicOversetFloaterFvMesh(const IOobject& io,  const bool doInit=true);
-
+    //- Construct from IOobject
+    dynamicOverFloaterMotionSolversFvMesh(const IOobject& io,  const bool doInit=true);
 
     //- Destructor
-    virtual ~dynamicOversetFloaterFvMesh();
-
+    virtual ~dynamicOverFloaterMotionSolversFvMesh();
 
     // Member Functions
 
         //- Override ldu addressing
         virtual const lduAddressing& lduAddr() const
         {
-            return dynamicOversetFloaterFvMesh::lduAddr();
+            return oversetFvMeshBase::lduAddr();
         }
 
         //- Override ldu addressing
         virtual lduInterfacePtrsList interfaces() const
         {
-            return dynamicOversetFloaterFvMesh::interfaces();
+            return oversetFvMeshBase::interfaces();
         }
 
 
@@ -170,9 +209,18 @@ public:
                     return oversetFvMeshBase::solveOverset<tensor>(m, dict);
                 }
 
+        //- Initialise all non-demand-driven data
+        virtual bool init(const bool doInit);
+
+        //- Initialise all non-demand-driven data. Used for initialising
+        //  without default motionSolver (used by dynamicRefineFvMesh)
+        virtual bool init(const bool doInit, const bool mandatory);
 
         //- Update the mesh for both mesh motion and topology change
         virtual bool update();
+
+        //- Map all fields in time using given map. Triggered by topo change
+        virtual void mapFields(const mapPolyMesh& mpm);
 
         //- Write using given format, version and compression
         virtual bool writeObject
@@ -189,4 +237,6 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#endif //DYNAMICOVERSETFLOATERFVMESH_H
+#endif //DYNAMICOVERFLOATERMOTIONSOLVERSFVMESH_H
+
+// ************************************************************************* //

@@ -12,6 +12,7 @@ $wcmd src/functionObjects/addedMassWriter
 $wcmd src/waveMakerMotionSolver
 
 $wcmd applications/floatStepper
+$wcmd applications/overFloatStepper
 $wcmd applications/util/joukowskiTransformPoints
 $wcmd applications/util/mySurfaceInertia
 $wcmd applications/util/KirchhoffKelvinIntegrator2D

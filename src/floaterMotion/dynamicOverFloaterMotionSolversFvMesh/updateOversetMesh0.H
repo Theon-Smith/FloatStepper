@@ -20,6 +20,19 @@ const volScalarField& p = lookupObject<volScalarField>("p");
 const surfaceVectorField& Uf = lookupObject<surfaceVectorField>("Uf");
 const volScalarField& rAU = lookupObject<volScalarField>("rAU");
 
+// find overset fields and scalars
+const volScalarField& cellMask = lookupObject<volScalarField>("cellMask");
+const surfaceScalarField& faceMask = lookupObject<surfaceScalarField>("faceMask");
+const volScalarField& interpolatedCells = lookupObject<volScalarField>("interpolatedCells");
+const tmp<surfaceScalarField>& talphaPhi1Corr0 = lookupObject<tmp<surfaceScalarField>>("talphaPhi1Corr");
+// don't like this todo: see if I can change it
+const dynamicFvMesh& mesh = lookupObject<dynamicFvMesh>("mesh");
+
+volScalarField cellMask0(cellMask);
+surfaceScalarField faceMask0(faceMask);
+volScalarField interpolatedCells0(interpolatedCells);
+tmp<surfaceScalarField> talphaPhi1Corr00(talphaPhi1Corr0);
+
 volScalarField alpha0(alpha1);
 volScalarField alpha20(alpha2);
 volVectorField U0("U0", U);
@@ -41,19 +54,19 @@ disp -= bodySolver.pointDisplacement().primitiveField();
 U0.correctBoundaryConditions();
 
 oversetFvMeshBase::update();
-if (mesh.changing())
+if (polyMesh::changing())
 {
     // Do not apply previous time-step mesh compression flux
     // if the mesh topology changed
-    if (mesh.topoChanging())
+    if (polyMesh::topoChanging())
     {
-        talphaPhi1Corr0.clear();
+        talphaPhi1Corr00.clear();
     }
 
     // Update cellMask field for blocking out hole cells
-    #include "setCellMask.H"
-    #include "setInterpolatedCells.H"
-    #include "correctPhiFaceMask.H"
+    #include "setCellMask0.H"
+    #include "setInterpolatedCells0.H"
+    #include "correctPhiFaceMask0.H"
 }
 
 // At this stage, the mesh point have been moved but all the fields are from the

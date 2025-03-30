@@ -9,13 +9,12 @@
     \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
-    Copyright (C) 2016 OpenFOAM Foundation
-    Copyright (C) 2019-2022 OpenCFD Ltd.
+    Copyright (C) 2022,2024 OpenCFD Ltd.
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    OpenFOAM is free software: you can redistribute it and/or modify i
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
@@ -30,29 +29,30 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "dynamicOverFloaterMotionSolversFvMesh.h"
+#include "dynamicOverFloaterMotionSolversFvMesh.H"
 #include "addToRunTimeSelectionTable.H"
 #include "motionSolver.H"
 #include "pointMesh.H"
 #include "volFields.H"
+
+#include "floaterMotionSolver.H"
+#include "fvCFD.H"
+#include "isoAdvection.H"
+#include "myCorrectPhi.H"
+#include "pimpleControl.H"
+#include "subCycle.H"
+#include "immiscibleIncompressibleTwoPhaseMixture.H"
+#include "incompressibleInterPhaseTransportModel.H"
+#include "processorPolyPatch.H" //Used by calculateGhf0.H
+#include "localMin.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
     defineTypeNameAndDebug(dynamicOverFloaterMotionSolversFvMesh, 0);
-    addToRunTimeSelectionTable
-    (
-        dynamicFvMesh,
-        dynamicOverFloaterMotionSolversFvMesh,
-        IOobject
-    );
-    addToRunTimeSelectionTable
-    (
-        dynamicFvMesh,
-        dynamicOverFloaterMotionSolversFvMesh,
-        doInit
-    );
+    addToRunTimeSelectionTable(dynamicFvMesh, dynamicOverFloaterMotionSolversFvMesh, IOobject);
+    addToRunTimeSelectionTable(dynamicFvMesh, dynamicOverFloaterMotionSolversFvMesh, doInit);
 }
 
 
@@ -65,6 +65,7 @@ Foam::dynamicOverFloaterMotionSolversFvMesh::dynamicOverFloaterMotionSolversFvMe
 )
 :
     dynamicFvMesh(io, doInit),
+    oversetFvMeshBase(static_cast<const fvMesh&>(*this)),
     motionSolvers_()
 {
     if (doInit)
@@ -72,7 +73,6 @@ Foam::dynamicOverFloaterMotionSolversFvMesh::dynamicOverFloaterMotionSolversFvMe
         init(false);    // do not initialise lower levels
     }
 }
-
 
 bool Foam::dynamicOverFloaterMotionSolversFvMesh::init
 (
@@ -140,13 +140,11 @@ bool Foam::dynamicOverFloaterMotionSolversFvMesh::init
     return true;
 }
 
-
 bool Foam::dynamicOverFloaterMotionSolversFvMesh::init(const bool doInit)
 {
     // Fall-back to always constructing motionSolver
     return init(doInit, true);
 }
-
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
@@ -155,7 +153,6 @@ Foam::dynamicOverFloaterMotionSolversFvMesh::~dynamicOverFloaterMotionSolversFvM
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
 
 void Foam::dynamicOverFloaterMotionSolversFvMesh::mapFields
 (
@@ -171,35 +168,20 @@ void Foam::dynamicOverFloaterMotionSolversFvMesh::mapFields
     }
 }
 
-
 bool Foam::dynamicOverFloaterMotionSolversFvMesh::update()
 {
-  /*//////////////////////////////////////////////////////
-    //// Old solver codes
-    /////////////////////////////////////////////////////
-    if (motionSolvers_.size())
+  /*
+    if (!dynamicMotionSolverListFvMesh::update())
     {
-        // Accumulated displacement
-        pointField disp(motionSolvers_[0].newPoints() - fvMesh::points());
+        return false;
+    }*/
 
-        for (label i = 1; i < motionSolvers_.size(); i++)
-        {
-            disp += motionSolvers_[i].newPoints() - fvMesh::points();
-        }
+    //Note: too late to do oversetFvMeshBase::clearOut() to get it
+    //      consistent with any new cell-cell stencil since
+    //      dynamicMotionSolverListFvMesh already triggers
+    //      meshObject::movePoints on cellCellStencilObject
 
-        fvMesh::movePoints(points() + disp);
-
-        volVectorField* Uptr = getObjectPtr<volVectorField>("U");
-
-        if (Uptr)
-        {
-            Uptr->correctBoundaryConditions();
-        }
-    }
-
-    return true;
-
-   */
+    // FloatStepper Section
     if (motionSolvers_.size())
     {
         // Accumulated displacement
@@ -258,7 +240,7 @@ bool Foam::dynamicOverFloaterMotionSolversFvMesh::update()
                     pointField oldPoints(polyMesh::points());
 //                    pointField oldOldPoints(polyMesh::oldPoints());
                     // oldMeshPhi used in alternative way to reset mesh motion (see below)
-                    surfaceScalarField oldMeshPhi(mesh.phi());
+                    surfaceScalarField oldMeshPhi(fvMesh::phi());
                     const floaterMotionState oldBodyState(bodySolver.motion().state());
                     const scalarField noAcceleration(6,0);
                     bodySolver.motion().setAcceleration(Zero);
@@ -283,25 +265,20 @@ bool Foam::dynamicOverFloaterMotionSolversFvMesh::update()
                     // fvMesh::movePoints(oldOldPoints);
                     // fvMesh::movePoints(oldPoints);
                     // Alternative approach with storage of old meshPhi
-                    mesh.setPhi() = oldMeshPhi;
-                    mesh.movePoints(oldPoints);
+                    *fvMesh::setPhi() = oldMeshPhi;
+                    fvMesh::movePoints(oldPoints);
 
                     // restore overset mesh
                     oversetFvMeshBase::update();
+                    /*
                     if (mesh.changing())
                     {
-                        // Do not apply previous time-step mesh compression flux
-                        // if the mesh topology changed
-                        if (mesh.topoChanging())
-                        {
-                            talphaPhi1Corr0.clear();
-                        }
 
                         // Update cellMask field for blocking out hole cells
                         #include "setCellMask.H"
                         #include "setInterpolatedCells.H"
                         #include "correctPhiFaceMask.H"
-                    }
+                    }*/
                     // end of overset restore
 
                     //Reset body state
@@ -331,7 +308,6 @@ bool Foam::dynamicOverFloaterMotionSolversFvMesh::update()
                 bodySolver.solve();
                 disp += bodySolver.pointDisplacement().primitiveField();
                 fvMesh::movePoints(bodySolver.points0() + disp);
-                // todo: check that this is a good jumping off point for oversetting
             }
         }
 
@@ -344,8 +320,25 @@ bool Foam::dynamicOverFloaterMotionSolversFvMesh::update()
         }
     }
 
+    // Overset section
+    oversetFvMeshBase::update();
+
     return true;
 }
 
 
+bool Foam::dynamicOverFloaterMotionSolversFvMesh::writeObject
+(
+    IOstreamOption streamOpt,
+    const bool writeOnProc
+) const
+{
+    bool ok =
+        dynamicFvMesh::writeObject(streamOpt, writeOnProc);// todo: fix this ref to the solverList and other like it
+    ok = oversetFvMeshBase::writeObject(streamOpt, writeOnProc) && ok;
+    return ok;
+}
+
+
 // ************************************************************************* //
+
