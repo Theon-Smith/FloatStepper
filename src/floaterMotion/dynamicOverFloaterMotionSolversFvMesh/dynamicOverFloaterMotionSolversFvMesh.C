@@ -218,10 +218,11 @@ bool Foam::dynamicOverFloaterMotionSolversFvMesh::update()
                 floaterMotionSolver& bodySolver =
                     static_cast<floaterMotionSolver&>(motionSolvers_[i]);
                 Info << "Body state before any update:" << endl;
+                Info << "update: 1" << endl;
                 bodySolver.motion().status();
-
+                Info << "update: 2" << endl;
                 const scalar deltaT = time().deltaTValue();
-
+                Info << "update: 3" << endl;
                 if (time().timeIndex() == time().startTimeIndex() + 1)
                 {
                     Info << "First time step - not calculating added mass" << endl;
@@ -236,6 +237,7 @@ bool Foam::dynamicOverFloaterMotionSolversFvMesh::update()
                 }
                 else
                 {
+                      Info << "update: 4" << endl;
                     // todo: ensure necessary overset things are saved
                     pointField oldPoints(polyMesh::points());
 //                    pointField oldOldPoints(polyMesh::oldPoints());
@@ -243,16 +245,19 @@ bool Foam::dynamicOverFloaterMotionSolversFvMesh::update()
                     surfaceScalarField oldMeshPhi(fvMesh::phi());
                     const floaterMotionState oldBodyState(bodySolver.motion().state());
                     const scalarField noAcceleration(6,0);
+                    Info << "update: 5" << endl;
                     bodySolver.motion().setAcceleration(Zero);
                     bodySolver.motion().setAngularAcceleration(Zero);
                     bodySolver.motion().updateFloaterState(noAcceleration, deltaT);
                     //Info << "Body state after zero acceleration time step:" << endl;
                     //bodySolver.motion().status();
-
+            Info << "update: 6" << endl;
                     // Update mesh points in accordance with 0-acceleration body motion
                     #include "updateOversetMesh0.H"
+          Info << "update: 7" << endl;
                     // Calculate fluid motion corresponding to 0-acceleration body motion
                     #include "updateFluid0.H" //alphaEqn, UEqn and Piso loop
+          Info << "update: 8" << endl;
                     // Recording fluid force associated with 0-acceleration motion
                     vector F0(Zero);
                     vector tau0(Zero);

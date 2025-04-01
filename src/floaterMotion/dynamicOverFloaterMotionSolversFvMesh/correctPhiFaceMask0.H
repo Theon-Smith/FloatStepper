@@ -30,14 +30,14 @@ Description
 
 surfaceScalarField faceMaskOld
 (
-    localMin<scalar>(mesh).interpolate(cellMask0.oldTime())
+    localMin<scalar>(*this).interpolate(cellMask0.oldTime())
 );
 
 // Zero Uf on old faceMask (H-I)
 Uf0 *= faceMaskOld;
 // Update Uf and phi on new C-I faces
 Uf0 += (1-faceMaskOld)*fvc::interpolate(U);
-phi0 = mesh.Sf() & Uf0;        // todo: there may be an error here changing phi to phi0
+phi0 = this->Sf() & Uf0;        // todo: there may be an error here changing phi to phi0
 
 phi0 *= faceMask0;
 

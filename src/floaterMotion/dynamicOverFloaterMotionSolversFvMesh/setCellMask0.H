@@ -29,7 +29,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 {
-    const cellCellStencilObject& overlap = Stencil::New(mesh);
+    const cellCellStencilObject& overlap = Stencil::New(*this);
     const labelList& cellTypes = overlap.cellTypes();
 
     cellMask0.primitiveFieldRef() = 1.0;
@@ -46,7 +46,7 @@ Description
     }
     cellMask0.correctBoundaryConditions();
 
-    faceMask0 = localMin<scalar>(mesh).interpolate(cellMask0);
+    faceMask0 = localMin<scalar>(*this).interpolate(cellMask0);
 }
 
 

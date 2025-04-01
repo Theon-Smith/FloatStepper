@@ -21,17 +21,24 @@ const surfaceVectorField& Uf = lookupObject<surfaceVectorField>("Uf");
 const volScalarField& rAU = lookupObject<volScalarField>("rAU");
 
 // find overset fields and scalars
-const volScalarField& cellMask = lookupObject<volScalarField>("cellMask");
-const surfaceScalarField& faceMask = lookupObject<surfaceScalarField>("faceMask");
-const volScalarField& interpolatedCells = lookupObject<volScalarField>("interpolatedCells");
-const tmp<surfaceScalarField>& talphaPhi1Corr0 = lookupObject<tmp<surfaceScalarField>>("talphaPhi1Corr");
-// don't like this todo: see if I can change it
-const dynamicFvMesh& mesh = lookupObject<dynamicFvMesh>("mesh");
 
+const volScalarField& cellMask = lookupObject<volScalarField>("cellMask");
+const surfaceScalarField& faceMask = lookupObject<surfaceScalarField>("localMin::interpolate(cellMask)"); //"faceMask");
+const volScalarField& interpolatedCells = lookupObject<volScalarField>("interpolatedCells");
+//const tmp<surfaceScalarField>& talphaPhi1Corr0 = lookupObject<tmp<surfaceScalarField>>("talphaPhi1Corr");
+//Info << classes() << endl;
+
+const tmp<surfaceScalarField> talphaPhi1Corr00;
+// don't like this todo: see if I can change it
+//const dynamicFvMesh& mesh = lookupObject<dynamicFvMesh>("mesh");
+
+Info << "A" << endl;
 volScalarField cellMask0(cellMask);
 surfaceScalarField faceMask0(faceMask);
 volScalarField interpolatedCells0(interpolatedCells);
-tmp<surfaceScalarField> talphaPhi1Corr00(talphaPhi1Corr0);
+//tmp<surfaceScalarField> talphaPhi1Corr00(talphaPhi1Corr0);
+
+Info << "B" << endl;
 
 volScalarField alpha0(alpha1);
 volScalarField alpha20(alpha2);
@@ -52,7 +59,7 @@ disp -= bodySolver.pointDisplacement().primitiveField();
 //movePoints(bodySolver.newPoints());
 
 U0.correctBoundaryConditions();
-
+Info << "BB" << endl;
 oversetFvMeshBase::update();
 if (polyMesh::changing())
 {
@@ -71,6 +78,7 @@ if (polyMesh::changing())
 
 // At this stage, the mesh point have been moved but all the fields are from the
 // old mesh
+Info << "C" << endl;
 
 uniformDimensionedScalarField hRef
 (
@@ -98,6 +106,7 @@ volScalarField gh("gh", (g & C()) - ghRef);
 surfaceScalarField ghf("ghf", (g & Cf()) - ghRef);
 
 //MRF.update();
+Info << "D" << endl;
 
 pimpleControl& pimple =
     const_cast<pimpleControl&>
@@ -123,6 +132,7 @@ if (correctPhi)
 
 //    mixture.correct();
 }
+Info << "E" << endl;
 /*
 if (checkMeshCourantNo)
 {

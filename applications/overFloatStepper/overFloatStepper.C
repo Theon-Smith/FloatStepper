@@ -49,11 +49,11 @@ Description
 #include "CrankNicolsonDdtScheme.H"
 #include "subCycle.H"
 #include "immiscibleIncompressibleTwoPhaseMixture.H"
-#include "incompressibleInterPhaseTransportModel.H"
-//#include "turbulentTransportModel.H"
+//#include "incompressibleInterPhaseTransportModel.H"
+#include "turbulentTransportModel.H"
 #include "pimpleControl.H"
 #include "fvOptions.H"
-#include "CorrectPhi.H"
+//#include "CorrectPhi.H"
 #include "fvcSmooth.H"
 #include "cellCellStencilObject.H"
 #include "localMin.H"
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 
     #include "postProcess.H"
 
-    #include "addCheckCaseOptions.H"
+    //#include "addCheckCaseOptions.H"
     #include "setRootCaseLists.H"
     #include "createTime.H"
     #include "createDynamicFvMesh.H"
@@ -79,15 +79,30 @@ int main(int argc, char *argv[])
 
     #include "createDyMControls.H"
     #include "createFields.H"
+    // OverInter only
+    #include "createAlphaFluxes.H"  //todo: probably needs a rework. MULES dependent
+    #include "createFvOptions.H"
 
     // might need to set correctphi flag set in fvSolution
-    #include "initCorrectPhi.H"
+    //#include "initCorrectPhi.H"
+    volScalarField rAU
+    (
+        IOobject
+        (
+            "rAU",
+            runTime.timeName(),
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("rAUf", dimTime/rho.dimensions(), 1.0)
+    );
     //#include "createUfIfPresent.H"
     #include "createUf.H"
 
     // In OverInterOnly:
-    #include "createAlphaFluxes.H"  //todo: probably needs a rework. MULES dependent
-    #include "createFvOptions.H"
+
     #include "createControls.H"
     #include "setCellMask.H"    // crucial overset stuff
     #include "setInterpolatedCells.H"
@@ -122,13 +137,8 @@ int main(int argc, char *argv[])
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        //scalar timeBeforeMeshUpdate = runTime.elapsedCpuTime();    //No mention of this. Looks like its diagnostic
-
         mesh.update();
 
-        //////////////////////////////////////////////////////////////////////////////////////////////////////
-        ///////////////////// This stuff should probably be moved to the mesh update section in ??floatermotion???
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
         if (mesh.changing())
         {
             // Do not apply previous time-step mesh compression flux
@@ -151,20 +161,6 @@ int main(int argc, char *argv[])
 
         // floatstepper stuff. unsure about placement
         MRF.update();
-/*
-        if (correctPhi)
-        {
-            // Calculate absolute flux
-            // from the mapped surface velocity
-            // phi = mesh.Sf() & Uf(); todo: reintroduce this
-
-            #include "correctPhi.H"
-
-            // Make the flux relative to the mesh motion
-            fvc::makeRelative(phi, U);
-
-            mixture.correct();
-        }*/
 
         if (checkMeshCourantNo)
         {
@@ -190,6 +186,7 @@ int main(int argc, char *argv[])
             mixture.correct();
 
 	        #include "UEqn.H"
+            Info<< "break 6" << endl;
 
             // --- Pressure corrector loop
             while (pimple.correct())

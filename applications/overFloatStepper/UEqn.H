@@ -24,7 +24,7 @@ and in pimple momentum predictor: "cellmask*" was added
  */
 
     MRF.correctBoundaryVelocity(U);
-
+Info<< "break 2" << endl;
     fvVectorMatrix UEqn
     (
         fvm::ddt(rho, U) + fvm::div(rhoPhi, U)
@@ -34,11 +34,11 @@ and in pimple momentum predictor: "cellmask*" was added
      ==
         fvOptions(rho, U)
     );
-
+Info<< "break 3" << endl;
     UEqn.relax();
-
+Info<< "break 4" << endl;
     fvOptions.constrain(UEqn);
-
+Info<< "break 5" << endl;
     if (pimple.momentumPredictor())
     {
         solve

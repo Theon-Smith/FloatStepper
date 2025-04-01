@@ -8,6 +8,7 @@ tmp<volScalarField> rAU;
 
 if (correctPhi)
 {
+    Info<< "\ncorrectPhi Enabled\n" << endl;
     rAU = new volScalarField
     (
         IOobject
@@ -26,6 +27,7 @@ if (correctPhi)
 }
 else
 {
+    Info<< "\ncorrectPhi Disabled\n" << endl;
     CorrectPhi
     (
         U,

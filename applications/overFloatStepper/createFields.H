@@ -33,6 +33,7 @@ volVectorField U
 //- Overset specific
 
 // Add solver-specific interpolations
+Info<< "Adding solver-specific interpolations\n" << endl;
 {
     wordHashSet& nonInt =
         const_cast<wordHashSet&>(Stencil::New(mesh).nonInterpolatedFields());
@@ -85,8 +86,6 @@ volScalarField rho
 );
 rho.oldTime();
 
-// Construct interface from alpha1 distribution
-//interfaceProperties interface(alpha1, U, mixture);
 
 // Mass flux
 surfaceScalarField rhoPhi
@@ -102,25 +101,12 @@ surfaceScalarField rhoPhi
     fvc::interpolate(rho)*phi
 );
 
-// from floatstepper
-typedef incompressibleInterPhaseTransportModel
-    <
-        immiscibleIncompressibleTwoPhaseMixture
-    > transportModelType;
 
-autoPtr<transportModelType> turbulence
+// Construct incompressible turbulence model
+autoPtr<incompressible::turbulenceModel> turbulence
 (
-    new transportModelType
-    (
-        rho, U, phi, rhoPhi, mixture
-    )
+    incompressible::turbulenceModel::New(U, phi, mixture)
 );
-
-//// Construct incompressible turbulence model
-//autoPtr<incompressible::turbulenceModel> turbulence
-//(
-//    incompressible::turbulenceModel::New(U, phi, mixture)
-//);
 
 
 #include "readGravitationalAcceleration.H"

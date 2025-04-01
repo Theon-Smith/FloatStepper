@@ -29,7 +29,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 {
-    const cellCellStencilObject& overlap = Stencil::New(mesh);
+    const cellCellStencilObject& overlap = Stencil::New(*this);
     const labelList& cellTypes = overlap.cellTypes();
 
     interpolatedCells0.primitiveFieldRef() = 1.0;
